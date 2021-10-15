@@ -6,7 +6,7 @@ _CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
 lru_cache_switch = None
 
 
-def lru_cache(maxsize=128, typed=False):
+def lru_cache_switchable(maxsize=128, typed=False):
     """Least-recently-used cache decorator.
     If *maxsize* is set to None, the LRU features are disabled and the cache
     can grow without bound.
