@@ -35,6 +35,8 @@ from thewalrus.fock_gradients import (
     mzgate as mzgate_tw,
 )
 
+from .switchable_memoization import lru_cache_switchable
+
 def_type = np.complex128
 indices = string.ascii_lowercase
 
@@ -205,7 +207,8 @@ def project_reset(modes, x, state, pure, n, trunc):
 # ============================================
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def a(trunc):
     r"""
     The annihilation operator :math:`a`.
@@ -216,7 +219,8 @@ def a(trunc):
     return ret
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def displacement(r, phi, trunc):
     r"""The displacement operator :math:`D(\alpha)`.
 
@@ -235,7 +239,8 @@ def displacement(r, phi, trunc):
     return ret
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def squeezing(r, theta, trunc):
     r"""The squeezing operator :math:`S(re^{i\theta})`.
 
@@ -254,7 +259,8 @@ def squeezing(r, theta, trunc):
     return ret
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def two_mode_squeeze(r, theta, trunc):
     r"""The two-mode squeezing operator :math:`S_2(re^{i\theta})`.
 
@@ -271,7 +277,8 @@ def two_mode_squeeze(r, theta, trunc):
     return ret
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def kerr(kappa, trunc):
     r"""
     The Kerr interaction :math:`K(\kappa)`.
@@ -281,7 +288,8 @@ def kerr(kappa, trunc):
     return ret
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def cross_kerr(kappa, trunc):
     r"""
     The cross-Kerr interaction :math:`CK(\kappa)`.
@@ -293,7 +301,8 @@ def cross_kerr(kappa, trunc):
     return ret
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def cubicPhase(gamma, hbar, trunc):
     r"""
     The cubic phase gate :math:`\exp{(i\frac{\gamma}{3\hbar}\hat{x}^3)}`.
@@ -306,7 +315,8 @@ def cubicPhase(gamma, hbar, trunc):
     return ret
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def phase(theta, trunc):
     r"""
     The phase gate :math:`R(\theta)`
@@ -315,7 +325,8 @@ def phase(theta, trunc):
 
 
 # pylint: disable=unused-argument
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def beamsplitter(theta, phi, trunc):
     r"""The beamsplitter :math:`B(\theta, \phi)`.
 
@@ -329,7 +340,8 @@ def beamsplitter(theta, phi, trunc):
     return BS_tw.transpose((0, 2, 1, 3))
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def mzgate(phi_in, phi_ex, cutoff):
     r"""The MZ gate :math:`\mathrm{MZ}(\phi_{in}, \phi_{ex})`.
 
@@ -343,7 +355,8 @@ def mzgate(phi_in, phi_ex, cutoff):
     return ret.transpose((0, 2, 1, 3))
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def proj(i, j, trunc):
     r"""
     The projector :math:`P = \ket{j}\bra{i}`.
@@ -380,7 +393,8 @@ def vacuumStateMixed(n, trunc):
     return state
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def fockState(n, trunc):
     r"""
     The Fock state :math:`\ket{n}`.
@@ -388,7 +402,8 @@ def fockState(n, trunc):
     return array([1.0 + 0.0j if i == n else 0.0 + 0.0j for i in range(trunc)])
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def coherentState(r, phi, trunc):
     r"""
     The coherent state :math:`D(\alpha)\ket{0}` where `alpha = r * np.exp(1j * phi)`.
@@ -402,7 +417,8 @@ def coherentState(r, phi, trunc):
     return exp(-abssqr(alpha) / 2) * array([entry(n) for n in range(trunc)])
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def squeezedState(r, theta, trunc):
     r"""
     The squeezed state :math:`S(re^{i\theta})`.
@@ -416,7 +432,8 @@ def squeezedState(r, theta, trunc):
     return sqrt(1 / cosh(r)) * vec
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def displacedSqueezed(r_d, phi_d, r_s, phi_s, trunc):
     r"""
     The displaced squeezed state :math:`\ket{\alpha,\zeta} = D(\alpha)S(r\exp{(i\phi)})\ket{0}`  where `alpha = r_d * np.exp(1j * phi_d)` and `zeta = r_s * np.exp(1j * phi_s)`.
@@ -446,7 +463,8 @@ def displacedSqueezed(r_d, phi_d, r_s, phi_s, trunc):
     return state
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def thermalState(nbar, trunc):
     r"""
     The thermal state :math:`\rho(\overline{nbar})`.
@@ -468,7 +486,8 @@ def thermalState(nbar, trunc):
 # ============================================
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def lossChannel(T, trunc):
     r"""
     The Kraus operators for the loss channel :math:`\mathcal{N}(T)`.
@@ -497,7 +516,8 @@ def lossChannel(T, trunc):
 # ============================================
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def hermiteVals(q_mag, num_bins, m_omega_over_hbar, trunc):
     """
     Helper function for homodyne measurements. Computes a range of (physicist's)
@@ -547,7 +567,8 @@ def gkp_coeffs(t, k, epsilon):
     return np.exp(-0.5 * np.pi * np.tanh(epsilon) * (k + 2 * t) ** 2)
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def square_gkp_basis_state(i, epsilon, ampl_cutoff, cutoff):
     """
     Generate the Fock expansion of a (subnormalized) computational GKP basis state. Normalization occurs in the ``square_gkp_state`` method.
@@ -571,7 +592,8 @@ def square_gkp_basis_state(i, epsilon, ampl_cutoff, cutoff):
     return sum(ket)
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
+@lru_cache_switchable()
 def square_gkp_state(theta, phi, epsilon, ampl_cutoff, cutoff):
     r"""
     Generate the Fock expansion of an abitrary GKP state parametrized as
