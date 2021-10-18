@@ -53,3 +53,5 @@ def lru_cache_disable():
     lru_cache_switch = False
 def lru_cache_enable():
     lru_cache_switch = True
+def test_functie():
+    print('test functie')
