@@ -715,7 +715,7 @@ class Program:
         opt.circuit = pu.optimize_circuit(self.circuit)
         return opt
 
-    def draw_circuit(self, tex_dir="./circuit_tex", write_to_file=True):
+    def draw_circuit(self, tex_dir="./circuit_tex", write_to_file=True, print_parameters_flag=False):#NEW!
         r"""Draw the circuit using the Qcircuit :math:`\LaTeX` package.
 
         This will generate the LaTeX code required to draw the quantum circuit
@@ -746,7 +746,7 @@ class Program:
         Returns:
             list[str]: filename of the written tex document and the written tex content
         """
-        drawer = sfcd.Circuit(wires=self.init_num_subsystems)
+        drawer = sfcd.Circuit(wires=self.init_num_subsystems,print_parameters_flag=print_parameters_flag)#NEW!
         self.print(drawer.parse_op)
         tex = drawer.dump_to_document()
 

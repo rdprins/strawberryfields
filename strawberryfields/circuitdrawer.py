@@ -22,11 +22,15 @@ import os
 # string constants used by :class:`~strawberryfields.circuitdrawer.Circuit`
 # to transform Strawberry Fields operators to latex code.
 
-DOCUMENT_CLASS = r"\documentclass{article}"
+# DOCUMENT_CLASS = r"\documentclass{article}"
+DOCUMENT_CLASS = r"\documentclass{minimal}"
 EMPTY_PAGESTYLE = r"\pagestyle{empty}"
-QCIRCUIT_PACKAGE = r"\usepackage{qcircuit}"
-BEGIN_DOCUMENT = r"\begin{document}"
-DOCUMENT_END = r"\end{document}"
+# QCIRCUIT_PACKAGE = r"\usepackage{qcircuit}"
+QCIRCUIT_PACKAGE = r"\usepackage{qcircuit}"+ "\n" + r"\usepackage[active,tightpage]{preview}" + "\n" + r"\setlength\PreviewBorder{5pt}"
+# BEGIN_DOCUMENT = r"\begin{document}"
+# DOCUMENT_END = r"\end{document}"
+BEGIN_DOCUMENT = r"\begin{document}" + "\n" + r"\begin{preview}"
+DOCUMENT_END = r"\end{preview}" + "\n" + r"\end{document}"
 CIRCUIT_START = r"\Qcircuit"
 COLUMN_SPACING = "@C={0}"  # spacing i.e. "1em"
 ROW_SPACING = "@R={0}"  # spacing
@@ -41,6 +45,7 @@ CLASSICAL_WIRE = r"\cw[{0}]"  # length vector
 CLASSICAL_WIRE_END = r"\cwa[{0}]"  # length vector
 VERTICAL_CLASSICAL_WIRE = r"\cwx[{0}]"  # length vector
 LABELLED_GATE = r"\gate{{{0}}}"  # label i.e. "X"
+MATHCAL = r"\mathcal{{{0}}}"
 TARGET = r"\targ"
 SWAP = r"\qswap"
 MULTIGATE = r"\multigate{{{0}}}{{{1}}}"  # depth i.e. "2", label
@@ -75,6 +80,9 @@ P_COMP = LABELLED_GATE.format("P")
 V_COMP = LABELLED_GATE.format("V")
 K_COMP = LABELLED_GATE.format("K")
 FOURIER_COMP = LABELLED_GATE.format("F")
+FOCK = LABELLED_GATE.format("Fock") #NEW!
+DENSITYMATRIX = MATHCAL.format("DM") #NEW!
+DENSITYMATRIX_singleWire = LABELLED_GATE.format("DM") #NEW!
 
 BS_MULTI_COMP = "BS"
 S_MULTI_COMP = "S"
@@ -139,11 +147,12 @@ class Circuit:
 
     _circuit_matrix = []
 
-    def __init__(self, wires):
+    def __init__(self, wires, print_parameters_flag=False):
         self._document = ""
         self._circuit_matrix = [[QUANTUM_WIRE.format(1)] for wire in range(wires)]
         self._column_spacing = None
         self._row_spacing = None
+        self.print_parameters_flag = print_parameters_flag #NEW!
 
         self.single_mode_gates = {
             "Xgate": self._x,
@@ -155,6 +164,7 @@ class Circuit:
             "Vgate": self._v,
             "Kgate": self._k,
             "Fourier": self._fourier,
+            "Fock": self._fock, #NEW!
         }
 
         self.two_mode_gates = {
@@ -163,6 +173,9 @@ class Circuit:
             "CKgate": self._ck,
             "BSgate": self._bs,
             "S2gate": self._s2,
+        }
+        self.N_mode_gates = {
+            "DensityMatrix": self._densitymatrix, #NEW!
         }
 
     def _gate_from_operator(self, op):
@@ -179,6 +192,16 @@ class Circuit:
         operator = str(op).split(PIPE)[0]
         method = None
         mode = None
+
+        # print('OPERATOR',str(op))
+        # print('OPERATOR',str(op).split(' | ')[0])
+        # print('OPERATOR.P',op.p)
+
+        for N_mode_gate in self.N_mode_gates:
+            if N_mode_gate in operator:
+                method = self.N_mode_gates[N_mode_gate]
+                mode = len(op.reg) # Not sure whether this works for different operations than DensityMatrix
+                # print('hallo',mode)
 
         for two_mode_gate in self.two_mode_gates:
             if two_mode_gate in operator:
@@ -215,86 +238,114 @@ class Circuit:
             raise UnsupportedGateException(
                 "Unsupported operation {0} not printable by circuit builder!".format(str(op))
             )
+        operator = str(op).split(PIPE)[0]
+        flag_skip = "DensityMatrix" in operator
+        if not flag_skip: extra_string = str(op).split(' |')[0]
         if mode == len(wires):
-            method(*wires)
+            if mode>2 or "DensityMatrix" in operator:
+                if self.print_parameters_flag and not flag_skip: method(wires,extra_string=extra_string)#NEW!
+                else: method(wires)#NEW!
+
+            else:
+                if self.print_parameters_flag and not flag_skip: method(*wires,extra_string=extra_string)#NEW!
+                else: method(*wires)#NEW!
         else:
             raise ModeMismatchException(
                 "{0} mode gate applied to {1} wires!".format(mode, len(wires))
             )
 
-    def _x(self, wire):
+    def _x(self, wire, extra_string=None):
         """Adds a position displacement operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, PAULI_X_COMP)
 
-    def _z(self, wire):
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, PAULI_X_COMP)
+
+    def _fock(self, wire, extra_string=None): #NEW!
+        """Adds Fock init to the circuit.
+
+        Args:
+            wire (int): the subsystem wire to apply the operator to.
+        """
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, FOCK)
+
+    def _z(self, wire, extra_string=None):
         """Adds a momentum displacement operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, PAULI_Z_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, PAULI_Z_COMP)
 
-    def _s(self, wire):
+    def _s(self, wire, extra_string=None):
         """Adds a squeezing operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, S_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, S_COMP)
 
-    def _d(self, wire):
+    def _d(self, wire, extra_string=None):
         """Adds a displacement operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, D_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, D_COMP)
 
-    def _r(self, wire):
+    def _r(self, wire, extra_string=None):
         """Adds a rotation operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, R_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, R_COMP)
 
-    def _p(self, wire):
+    def _p(self, wire, extra_string=None):
         """Adds a quadratic phase shift operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, P_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, P_COMP)
 
-    def _v(self, wire):
+    def _v(self, wire, extra_string=None):
         """Adds a cubic phase shift operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, V_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, V_COMP)
 
-    def _k(self, wire):
+    def _k(self, wire, extra_string=None):
         """Adds a Kerr operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, K_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, K_COMP)
 
-    def _fourier(self, wire):
+    def _fourier(self, wire, extra_string=None):
         """Adds a Fourier transform operator to the circuit.
 
         Args:
             wire (int): the subsystem wire to apply the operator to.
         """
-        self._single_mode_gate(wire, FOURIER_COMP)
+        if self.print_parameters_flag:self._single_mode_gate(wire, LABELLED_GATE.format(extra_string))
+        else:self._single_mode_gate(wire, FOURIER_COMP)
 
-    def _cx(self, source_wire, target_wire):
+    def _cx(self, source_wire, target_wire, extra_string=None):
         """Adds a controlled position displacement operator to the circuit.
 
         Args:
@@ -303,41 +354,54 @@ class Circuit:
         """
         self._controlled_mode_gate(source_wire, target_wire, TARGET)
 
-    def _cz(self, source_wire, target_wire):
+    def _cz(self, source_wire, target_wire, extra_string=None):
         """Adds a controlled phase operator to the circuit.
 
         Args:
             source_wire (int): the controlling subsystem wire.
             target_wire (int): the controlled subsystem wire.
         """
-        self._controlled_mode_gate(source_wire, target_wire, PAULI_Z_COMP)
+        if self.print_parameters_flag:self._controlled_mode_gate(source_wire, target_wire, LABELLED_GATE.format(extra_string))
+        else:self._controlled_mode_gate(source_wire, target_wire, PAULI_Z_COMP)
 
-    def _ck(self, source_wire, target_wire):
+    def _ck(self, source_wire, target_wire, extra_string=None):
         """Adds a controlled Kerr operator to the circuit.
 
         Args:
             source_wire (int): the controlling subsystem wire.
             target_wire (int): the controlled subsystem wire.
         """
-        self._controlled_mode_gate(source_wire, target_wire, K_COMP)
+        if self.print_parameters_flag:self._controlled_mode_gate(source_wire, target_wire, LABELLED_GATE.format(extra_string))
+        else:self._controlled_mode_gate(source_wire, target_wire, K_COMP)
 
-    def _bs(self, first_wire, second_wire):
+    def _bs(self, first_wire, second_wire, extra_string=None):
         """Adds a beams plitter operator to the circuit.
 
         Args:
             first_wire (int): the first subsystem wire to apply the operator to.
             second_wire (int): the second subsystem wire to apply the operator to.
         """
-        self._multi_mode_gate(BS_MULTI_COMP, [first_wire, second_wire])
+        if self.print_parameters_flag:self._multi_mode_gate(extra_string, [first_wire, second_wire])
+        else:self._multi_mode_gate(BS_MULTI_COMP, [first_wire, second_wire])
+    def _densitymatrix(self, wires, extra_string=None): #NEW!
+        # NEVER DO print_parameters_flag
+        # print(wires)
+        if isinstance(wires,list):#NEW!
+            # print('111')
+            self._multi_mode_gate(DENSITYMATRIX, wires)#NEW!
+        else: #NEW!
+            # print('222')
+            self._single_mode_gate(wires, DENSITYMATRIX_singleWire)#NEW!
 
-    def _s2(self, first_wire, second_wire):
+    def _s2(self, first_wire, second_wire, extra_string=None):
         """Adds an two mode squeezing operator to the circuit.
 
         Args:
             first_wire (int): the first subsystem wire to apply the operator to.
             second_wire (int): the second subsystem wire to apply the operator to.
         """
-        self._multi_mode_gate(S_MULTI_COMP, [first_wire, second_wire])
+        if self.print_parameters_flag:self._multi_mode_gate(extra_string, [first_wire, second_wire])
+        else:self._multi_mode_gate(S_MULTI_COMP, [first_wire, second_wire])
 
     # operation types
 
@@ -350,6 +414,7 @@ class Circuit:
         """
         matrix = self._circuit_matrix
         wire_ops = matrix[wire]
+
 
         if Circuit._is_empty(wire_ops[-1]):
             wire_ops[-1] = circuit_op
@@ -378,7 +443,8 @@ class Circuit:
 
         first_wire = wires.pop(0)
         wire_ops = matrix[first_wire]
-        wire_ops[-1] = MULTIGATE.format(1, circuit_op)
+        # wire_ops[-1] = MULTIGATE.format(1, circuit_op)
+        wire_ops[-1] = MULTIGATE.format(len(wires), circuit_op)#NEW!
         matrix[first_wire] = wire_ops
         previous_wire = first_wire
 
