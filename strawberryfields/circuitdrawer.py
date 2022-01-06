@@ -83,6 +83,8 @@ FOURIER_COMP = LABELLED_GATE.format("F")
 FOCK = LABELLED_GATE.format("Fock") #NEW!
 DENSITYMATRIX = MATHCAL.format("DM") #NEW!
 DENSITYMATRIX_singleWire = LABELLED_GATE.format("DM") #NEW!
+GGATE = MATHCAL.format("G") #NEW!
+GGATE_singleWire = LABELLED_GATE.format("G") #NEW!
 
 BS_MULTI_COMP = "BS"
 S_MULTI_COMP = "S"
@@ -176,6 +178,7 @@ class Circuit:
         }
         self.N_mode_gates = {
             "DensityMatrix": self._densitymatrix, #NEW!
+            "Ggate": self._Ggate, #NEW!
         }
 
     def _gate_from_operator(self, op):
@@ -239,11 +242,19 @@ class Circuit:
                 "Unsupported operation {0} not printable by circuit builder!".format(str(op))
             )
         operator = str(op).split(PIPE)[0]
-        flag_skip = "DensityMatrix" in operator
-        if not flag_skip: extra_string = str(op).split(' |')[0]
+        flag_skip = ("DensityMatrix" in operator) or ("Ggate" in operator)
+        if (not flag_skip) or ("Ggate" in operator):
+            # print('REPLACE')
+            extra_string = str(op).split(PIPE)[0]
+            extra_string=extra_string.rstrip()
+            extra_string = extra_string.replace('{','\{').replace('}','\}')
         if mode == len(wires):
-            if mode>2 or "DensityMatrix" in operator:
-                if self.print_parameters_flag and not flag_skip: method(wires,extra_string=extra_string)#NEW!
+            if mode>2 or ("DensityMatrix" in operator) or ("Ggate" in operator):
+                if "Ggate" in operator:
+                    extra_string = extra_string.replace('\n','').replace('  ','').split(']]')[0] + ' ...?'
+                    # print(extra_string)
+                    method(wires,extra_string=extra_string)
+                elif self.print_parameters_flag and not flag_skip: method(wires,extra_string=extra_string)#NEW!
                 else: method(wires)#NEW!
 
             else:
@@ -392,6 +403,20 @@ class Circuit:
         else: #NEW!
             # print('222')
             self._single_mode_gate(wires, DENSITYMATRIX_singleWire)#NEW!
+    def _Ggate(self, wires, extra_string=None): #NEW!
+        # NEVER DO print_parameters_flag
+        # print(wires)
+        if isinstance(wires,list):#NEW!
+            # print('111')
+            # print(wires)
+            if self.print_parameters_flag:self._multi_mode_gate(LABELLED_GATE.format(extra_string),wires)
+            else: self._multi_mode_gate(GGATE, wires)#NEW!
+
+        else: #NEW!
+            # print('222')
+            # print(wires)
+            if self.print_parameters_flag: self._single_mode_gate(wires, LABELLED_GATE.format(extra_string))#NEW!
+            else: self._single_mode_gate(wires, GGATE_singleWire)#NEW!
 
     def _s2(self, first_wire, second_wire, extra_string=None):
         """Adds an two mode squeezing operator to the circuit.

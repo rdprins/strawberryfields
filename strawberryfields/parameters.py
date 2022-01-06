@@ -312,6 +312,11 @@ def par_str(p):
         return str(p)
     if par_is_symbolic(p):
         return str(p)
+    import tensorflow as tf
+    if tf.is_tensor(p): #NEW!
+        # np.set_printoptions(precision=4) #NEW!
+        # return str(p.numpy()) #NEW!
+        return str(p)
     return "{:.4g}".format(p)  # scalar parameters
 
 
